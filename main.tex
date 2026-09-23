@@ -1,0 +1,338 @@
+\documentclass[11pt]{article}
+\usepackage[utf8x]{inputenc}
+\usepackage[spanish]{babel}
+
+\usepackage{pstricks,pst-node}
+\usepackage{amssymb,amsmath,amsthm,amsfonts}
+\usepackage{calc}
+\usepackage{cancel}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{gensymb}
+\usepackage{natbib}
+\usepackage{url}
+\usepackage{parskip}
+\usepackage{fancyhdr}
+\usepackage{vmargin}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{float}
+
+\setmarginsrb{2 cm}{1.7 cm}{2 cm}{2.5 cm}{1 cm}{1 cm}{1 cm}{1 cm}
+
+\pagestyle{fancy}
+
+\rhead{\includegraphics[scale=0.21]{logo_di.png}}
+\lhead{\textbf{ICN292:} Sistemas de información para la gestión \\
+\textbf{Profesores:} José Miguel González Paul / José Luis Sáez Tamayo\\
+\textbf{Estudiante:} Sergio Cerecera}
+\cfoot{\thepage}
+
+\begin{document}
+
+
+% PORTADA / TITULO
+
+
+\begin{center}
+    \Large{\textbf{Laboratorio 3}} \\
+    \textbf{Automatización de procesos con n8n} \\
+    \large{Segundo Semestre 2026}
+    \url{https://github.com/sergiocerecera/ICN292-Lab3-Cerecera-Sergio}
+\end{center}
+
+\vspace{0.5cm}
+
+
+% RESUMEN EJECUTIVO
+
+\section*{Resumen Ejecutivo}
+
+En este laboratorio se trabajó en la automatización del proceso de gestión de solicitudes de devolución de AndesHogar SpA utilizando n8n. El objetivo principal fue tomar las reglas de negocio entregadas para el proceso y transformarlas en un flujo que permitiera recibir las solicitudes, determinar automáticamente qué debía hacerse con cada una y registrar el resultado obtenido.
+
+Para esto se construyó un workflow principal que recibe las solicitudes mediante un Webhook y utiliza un nodo Switch para aplicar las reglas de negocio en el orden establecido. Dependiendo de las condiciones de cada solicitud, esta puede quedar aprobada, pasar a revisión, ser rechazada o ser considerada como datos inválidos. Además, se incorporó el registro de los resultados en Google Sheets y el envío de una notificación mediante Gmail.
+
+Para probar el funcionamiento del flujo se creó un segundo workflow encargado de enviar las 15 solicitudes entregadas en el laboratorio hacia el Webhook mediante peticiones HTTP. Las 15 solicitudes fueron procesadas correctamente, obteniéndose 5 solicitudes en la ruta de aprobación, 6 en revisión y 4 rechazadas.
+
+Posteriormente, se implementó un tercer workflow utilizando un Schedule Trigger, cuya función es leer el registro de devoluciones y generar un resumen diario. Este resumen permite conocer la cantidad de solicitudes y el monto asociado a cada ruta, además del total de solicitudes, el monto total del día y la tasa de aprobación automática. Para las 15 solicitudes procesadas se obtuvo un total de \$1.251.820 y una tasa de aprobación automática de 33,33\%.
+
+Con esto, se logró implementar un flujo que automatiza las principales decisiones del proceso de devoluciones y que además permite mantener un registro de los resultados y generar información resumida para su seguimiento.
+
+\newpage
+
+
+% 1. PARÁMETROS Y DATOS
+
+
+\section{Contexto}
+
+El laboratorio consiste en automatizar el proceso de gestión de solicitudes de devolución de AndesHogar SpA utilizando n8n. Actualmente, las solicitudes son recibidas mediante un formulario web y posteriormente deben ser revisadas para determinar si se aprueban, se rechazan o requieren una revisión adicional.
+
+El objetivo del laboratorio es construir un flujo que permita recibir las solicitudes, aplicar las reglas de negocio entregadas, registrar el resultado y enviar una respuesta al cliente. Además, se implementa un flujo programado que permite obtener un resumen de las solicitudes procesadas.
+
+\section{Parámetros}
+
+Para este laboratorio se utilizó como semilla personal los últimos tres dígitos del RUT, sin considerar el dígito verificador:
+
+\[
+S = 794
+\]
+
+A partir de este valor se calcularon los parámetros utilizados por las reglas de negocio:
+
+\[
+U = 30000 + 1000(S \bmod 50)
+\]
+
+\[
+U = 30000 + 1000(794 \bmod 50) = 74000
+\]
+
+Por lo tanto, el umbral de monto utilizado fue:
+
+\[
+\boxed{U = \$74.000}
+\]
+
+Para el plazo máximo:
+
+\[
+D = 7 + 7(S \bmod 4)
+\]
+
+\[
+D = 7 + 7(794 \bmod 4) = 21
+\]
+
+Por lo tanto:
+
+\[
+\boxed{D = 21\ días}
+\]
+
+Estos valores fueron utilizados directamente en las condiciones del flujo de n8n.
+
+\section{Datos}
+
+Para las pruebas se utilizaron las 15 solicitudes entregadas para el laboratorio. Los datos fueron recibidos como texto, tal como ocurriría con información proveniente de un formulario web.
+
+Cada solicitud contiene los siguientes campos principales:
+
+\begin{itemize}
+    \item Identificador de la solicitud.
+    \item SKU del producto.
+    \item Cantidad de unidades.
+    \item Monto de la solicitud.
+    \item Días desde la compra.
+    \item Estado del producto.
+    \item Correo del cliente.
+\end{itemize}
+
+Las solicitudes fueron enviadas al flujo mediante un segundo workflow de n8n, utilizando un nodo HTTP Request que realiza una petición POST al Webhook del flujo principal.
+
+Finalmente, las 15 solicitudes fueron procesadas y registradas en Google Sheets, permitiendo posteriormente utilizar estos datos para generar el resumen diario.
+
+
+% 2. PARTE A
+
+\newpage
+
+\section{Parte A -- Flujo de triage}
+
+Para esta parte se construyó un workflow en n8n encargado de recibir y procesar las solicitudes de devolución. El flujo principal comienza con un Webhook mediante método POST, que recibe los datos de cada solicitud.
+
+Luego, los datos pasan por un nodo Edit Fields y posteriormente por un Switch en modo Rules. En este nodo se implementaron las reglas de negocio en el mismo orden indicado en el enunciado. Las condiciones consideran solicitudes con datos inválidos, devoluciones fuera de plazo, productos dañados por uso, montos superiores al umbral y productos con fallas.
+
+Las salidas del Switch fueron conectadas a nodos Edit Fields, donde se establece la ruta y el motivo correspondiente. En el caso de no cumplirse ninguna de las condiciones anteriores, se utiliza la salida Fallback para enviar la solicitud a la ruta de aprobación.
+
+El resultado de cada solicitud se registra posteriormente en Google Sheets, almacenando datos como el identificador, monto, días desde la compra, estado del producto, ruta y motivo. Finalmente, se utiliza Gmail para enviar la notificación correspondiente y un nodo Respond to Webhook para entregar una respuesta al sistema que realizó la solicitud.
+
+\subsection{Reglas implementadas}
+
+Las reglas utilizadas en el Switch fueron las siguientes:
+
+\begin{enumerate}
+    \item Si falta el identificador de la solicitud, se considera como dato inválido.
+    \item Si el monto es menor o igual a cero, se considera como dato inválido.
+    \item Si los días desde la compra son mayores a $D$, la solicitud es rechazada.
+    \item Si el producto está dañado por uso, la solicitud es rechazada.
+    \item Si el monto es mayor a $U$, la solicitud pasa a revisión.
+    \item Si el producto presenta fallas, la solicitud pasa a revisión.
+    \item Si ninguna de las condiciones anteriores se cumple, la solicitud es aprobada.
+\end{enumerate}
+
+El orden de estas reglas es importante, ya que el Switch utiliza la primera condición que se cumple para determinar la ruta de la solicitud.
+
+\subsection{Envío de solicitudes}
+
+Para realizar las pruebas se construyó un segundo workflow llamado
+\textit{LAB - Enviar Solicitud}. Este genera las 15 solicitudes y las envía
+mediante un nodo HTTP Request hacia el Webhook del flujo principal.
+
+El workflow utilizado fue:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{enviar_solicitud_workflow.png}
+    \caption{Workflow utilizado para enviar las solicitudes.}
+\end{figure}
+
+Las 15 solicitudes fueron procesadas correctamente y quedaron registradas
+en Google Sheets.
+
+\subsection{Resultados del triage}
+
+Después de ejecutar el workflow emisor, se procesaron las 15 solicitudes entregadas en el laboratorio. Los resultados obtenidos fueron los siguientes:
+
+\begin{table}[H]
+\centering
+\caption{Resultados generales del triage.}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Ruta} & \textbf{Cantidad} & \textbf{Porcentaje} \\
+\hline
+APROBACION & 5 & 33,33\% \\
+\hline
+REVISION & 6 & 40,00\% \\
+\hline
+RECHAZO & 4 & 26,67\% \\
+\hline
+DATOS\_INVALIDOS & 0 & 0,00\% \\
+\hline
+\textbf{Total} & \textbf{15} & \textbf{100,00\%} \\
+\hline
+\end{tabular}
+\end{table}
+
+Los resultados muestran que 5 solicitudes fueron aprobadas automáticamente, mientras que 6 pasaron a revisión y 4 fueron rechazadas. No se presentaron solicitudes clasificadas como datos inválidos.
+
+Como evidencia del funcionamiento del flujo se registraron las solicitudes en Google Sheets y se verificaron las ejecuciones exitosas del workflow en n8n.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{workflow_principal.png}
+    \caption{Workflow principal implementado en n8n.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{registro_devoluciones.png}
+    \caption{Registro de las solicitudes procesadas en Google Sheets.}
+\end{figure}
+
+\subsection{Detalle de las solicitudes}
+
+La siguiente tabla muestra el resultado obtenido para cada una de las 15 solicitudes procesadas.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Detalle de las 15 solicitudes procesadas.}
+\begin{tabular}{|c|r|c|c|c|l|}
+\hline
+\textbf{ID} & \textbf{Monto} & \textbf{Días} & \textbf{Estado} & \textbf{Ruta} & \textbf{Motivo} \\
+\hline
+DEV-1115 & 19990 & 3 & sin\_abrir & APROBACION & Cumple las condiciones de aprobación \\
+\hline
+DEV-1116 & 69980 & 5 & abierto\_sin\_uso & APROBACION & Cumple las condiciones de aprobación \\
+\hline
+DEV-1117 & 24990 & 12 & con\_fallas & REVISION & Requiere revisión \\
+\hline
+DEV-1118 & 79990 & 4 & sin\_abrir & REVISION & Requiere revisión \\
+\hline
+DEV-1119 & 45990 & 25 & danado\_por\_uso & RECHAZO & RECHAZO \\
+\hline
+DEV-1120 & 89990 & 2 & con\_fallas & REVISION & Requiere revisión \\
+\hline
+DEV-1121 & 289990 & 9 & sin\_abrir & REVISION & Requiere revisión \\
+\hline
+DEV-1122 & 45990 & 2 & sin\_abrir & APROBACION & Cumple las condiciones de aprobación \\
+\hline
+DEV-1123 & 39980 & 15 & danado\_por\_uso & RECHAZO & RECHAZO \\
+\hline
+DEV-1124 & 49980 & 1 & abierto\_sin\_uso & APROBACION & Cumple las condiciones de aprobación \\
+\hline
+DEV-1125 & 34990 & 22 & sin\_abrir & RECHAZO & RECHAZO \\
+\hline
+DEV-1126 & 79990 & 8 & con\_fallas & REVISION & Requiere revisión \\
+\hline
+DEV-C01 & 9990 & 1 & sin\_abrir & APROBACION & Cumple las condiciones de aprobación \\
+\hline
+DEV-C02 & 289990 & 2 & sin\_abrir & REVISION & Requiere revisión \\
+\hline
+DEV-C03 & 79990 & 29 & abierto\_sin\_uso & RECHAZO & RECHAZO \\
+\hline
+\end{tabular}
+\end{table}
+
+\newpage
+%PARTE B
+\section{Parte B -- Resumen diario}
+
+Se creó un tercer workflow en n8n llamado \textit{LAB - Resumen Diario}. Este workflow se ejecuta una vez al día y utiliza los registros almacenados en Google Sheets para generar un resumen.
+
+El flujo utilizado fue:
+
+\begin{center}
+\textbf{Schedule Trigger}
+$\rightarrow$
+\textbf{Google Sheets}
+$\rightarrow$
+\textbf{Summarize}
+$\rightarrow$
+\textbf{Code}
+$\rightarrow$
+\textbf{Gmail}
+\end{center}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{resumen_diario_workflow.png}
+    \caption{Workflow del resumen diario.}
+\end{figure}
+
+El resumen obtenido para las 15 solicitudes fue:
+
+\begin{table}[H]
+\centering
+\caption{Resumen diario de las solicitudes procesadas.}
+\begin{tabular}{|c|c|r|}
+\hline
+\textbf{Ruta} & \textbf{Cantidad} & \textbf{Monto} \\
+\hline
+APROBACION & 5 & \$195.930 \\
+\hline
+REVISION & 6 & \$854.940 \\
+\hline
+RECHAZO & 4 & \$200.950 \\
+\hline
+\textbf{Total} & \textbf{15} & \textbf{\$1.251.820} \\
+\hline
+\end{tabular}
+\end{table}
+
+La tasa de aprobación automática fue de:
+
+\[
+\frac{5}{15}\times100 = 33,33\%
+\]
+
+El workflow fue configurado para ejecutarse diariamente a las 00:00. Finalmente, el resumen fue enviado mediante Gmail.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{correo_resumen.png}
+    \caption{Correo con el resumen diario.}
+\end{figure}
+\newpage
+
+\section{Conclusiones}
+
+En este laboratorio se logró implementar en n8n un flujo para automatizar la recepción y clasificación de solicitudes de devolución. El uso del Webhook y del Switch permitió aplicar las reglas de negocio de forma automática y mantener el orden establecido para las decisiones.
+
+Además, las 15 solicitudes entregadas fueron procesadas y registradas correctamente en Google Sheets. A partir de estos registros también fue posible generar un resumen diario con la cantidad de solicitudes, los montos por ruta y la tasa de aprobación automática.
+
+En general, el trabajo permitió comprobar que parte del proceso de devoluciones puede ser automatizado, reduciendo la necesidad de revisar manualmente cada solicitud y dejando los resultados registrados para su posterior seguimiento.
+
+\end{document}
