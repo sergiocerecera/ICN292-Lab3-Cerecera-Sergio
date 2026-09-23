@@ -1,0 +1,137 @@
+{
+  "name": "LAB - Enviar Solicitud",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "68753635-3fc3-4896-a9c0-57ea2b698c30",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://cere.app.n8n.cloud/webhook/devoluciones",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    id_solicitud: $json.id_solicitud,\n    sku: $json.sku,\n    unidades: $json.unidades,\n    monto: $json.monto,\n    dias_desde_compra: $json.dias_desde_compra,\n    estado_producto: $json.estado_producto,\n    email_cliente: $json.email_cliente\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        736,
+        0
+      ],
+      "id": "31154cec-8d77-4045-8e96-5c4a015aa463",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      id_solicitud: \"DEV-1115\",\n      sku: \"AU-210\",\n      unidades: \"1\",\n      monto: \"19990\",\n      dias_desde_compra: \"3\",\n      estado_producto: \"sin_abrir\",\n      email_cliente: \"client1@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1116\",\n      sku: \"TE-330\",\n      unidades: \"2\",\n      monto: \"69980\",\n      dias_desde_compra: \"5\",\n      estado_producto: \"abierto_sin_uso\",\n      email_cliente: \"client2@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1117\",\n      sku: \"HV-050\",\n      unidades: \"1\",\n      monto: \"24990\",\n      dias_desde_compra: \"12\",\n      estado_producto: \"con_fallas\",\n      email_cliente: \"client3@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1118\",\n      sku: \"MW-150\",\n      unidades: \"1\",\n      monto: \"79990\",\n      dias_desde_compra: \"4\",\n      estado_producto: \"sin_abrir\",\n      email_cliente: \"client4@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1119\",\n      sku: \"PL-120\",\n      unidades: \"1\",\n      monto: \"45990\",\n      dias_desde_compra: \"25\",\n      estado_producto: \"danado_por_uso\",\n      email_cliente: \"client5@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1120\",\n      sku: \"AS-260\",\n      unidades: \"1\",\n      monto: \"89990\",\n      dias_desde_compra: \"2\",\n      estado_producto: \"con_fallas\",\n      email_cliente: \"client6@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1121\",\n      sku: \"LV-330\",\n      unidades: \"1\",\n      monto: \"289990\",\n      dias_desde_compra: \"9\",\n      estado_producto: \"sin_abrir\",\n      email_cliente: \"client7@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1122\",\n      sku: \"PL-120\",\n      unidades: \"1\",\n      monto: \"45990\",\n      dias_desde_compra: \"2\",\n      estado_producto: \"sin_abrir\",\n      email_cliente: \"client8@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1123\",\n      sku: \"AU-210\",\n      unidades: \"2\",\n      monto: \"39980\",\n      dias_desde_compra: \"15\",\n      estado_producto: \"danado_por_uso\",\n      email_cliente: \"client9@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1124\",\n      sku: \"HV-050\",\n      unidades: \"2\",\n      monto: \"49980\",\n      dias_desde_compra: \"1\",\n      estado_producto: \"abierto_sin_uso\",\n      email_cliente: \"client10@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1125\",\n      sku: \"TE-330\",\n      unidades: \"1\",\n      monto: \"34990\",\n      dias_desde_compra: \"22\",\n      estado_producto: \"sin_abrir\",\n      email_cliente: \"client11@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-1126\",\n      sku: \"MW-150\",\n      unidades: \"1\",\n      monto: \"79990\",\n      dias_desde_compra: \"8\",\n      estado_producto: \"con_fallas\",\n      email_cliente: \"client12@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-C01\",\n      sku: \"CB-010\",\n      unidades: \"1\",\n      monto: \"9990\",\n      dias_desde_compra: \"1\",\n      estado_producto: \"sin_abrir\",\n      email_cliente: \"control01@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-C02\",\n      sku: \"LV-330\",\n      unidades: \"1\",\n      monto: \"289990\",\n      dias_desde_compra: \"2\",\n      estado_producto: \"sin_abrir\",\n      email_cliente: \"control02@ejemplo.com\"\n    }\n  },\n  {\n    json: {\n      id_solicitud: \"DEV-C03\",\n      sku: \"MW-150\",\n      unidades: \"1\",\n      monto: \"79990\",\n      dias_desde_compra: \"29\",\n      estado_producto: \"abierto_sin_uso\",\n      email_cliente: \"control03@ejemplo.com\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "57405a4c-32c4-4185-9570-d9329fb81f1d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        464,
+        -16
+      ],
+      "id": "318d93a2-3153-47a5-a52f-68ee42b9cd27",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        208
+      ],
+      "id": "ff6ea163-db5f-41b8-83ad-a29c2bdece00",
+      "placeholder": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2e908e97-cd37-4923-b8a9-597a7edf341e",
+  "meta": {
+    "instanceId": "9fe3167a9a37f1bd0255ed54dd5a5f4583b7370cac9db54126e868087ae577d3"
+  },
+  "nodeGroups": [],
+  "id": "n5hUZ9K6tmsollN9",
+  "tags": []
+}

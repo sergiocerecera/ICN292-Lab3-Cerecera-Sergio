@@ -1,0 +1,176 @@
+{
+  "name": "LAB - Resumen Diario",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c6a1fc24-2757-4b70-bad1-3572b887495f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1n4SWBS-Sgu-DP5EcE7rOFiuC-H4OiN6gFLqJN9vUKiQ",
+          "mode": "list",
+          "cachedResultName": "Registro Devoluciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1n4SWBS-Sgu-DP5EcE7rOFiuC-H4OiN6gFLqJN9vUKiQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 834645315,
+          "mode": "list",
+          "cachedResultName": "registro",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1n4SWBS-Sgu-DP5EcE7rOFiuC-H4OiN6gFLqJN9vUKiQ/edit#gid=834645315"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "6ce15653-bcdb-4e69-8c4d-14f8a9342d78",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FF40jn9tyNHeo8h8",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "field": "id_solicitud"
+            },
+            {
+              "aggregation": "sum",
+              "field": "monto"
+            }
+          ]
+        },
+        "fieldsToSplitBy": "ruta",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "e0b0223e-755f-449e-b895-5c525c4988e5",
+      "name": "Summarize"
+    },
+    {
+      "parameters": {
+        "jsCode": "const datos = $input.all();\n\nlet totalSolicitudes = 0;\nlet totalMonto = 0;\nlet aprobaciones = 0;\nlet resumen = [];\n\nfor (const item of datos) {\n  const ruta = item.json.ruta;\n  const cantidad = Number(item.json.count_id_solicitud || 0);\n  const monto = Number(item.json.sum_monto || 0);\n\n  totalSolicitudes += cantidad;\n  totalMonto += monto;\n\n  if (ruta === 'APROBACION') {\n    aprobaciones = cantidad;\n  }\n\n  resumen.push(\n    `${ruta}: ${cantidad} solicitudes - $${monto.toLocaleString('es-CL')}`\n  );\n}\n\nconst tasaAprobacion = totalSolicitudes > 0\n  ? ((aprobaciones / totalSolicitudes) * 100).toFixed(2)\n  : '0.00';\n\nreturn [{\n  json: {\n    asunto: 'Resumen diario de devoluciones',\n    resumen: resumen.join('\\n'),\n    totalSolicitudes,\n    totalMonto,\n    tasaAprobacion: `${tasaAprobacion}%`,\n    mensaje:\n`Resumen diario de devoluciones\n\n${resumen.join('\\n')}\n\nTotal de solicitudes: ${totalSolicitudes}\nMonto total del día: $${totalMonto.toLocaleString('es-CL')}\nTasa de aprobación automática: ${tasaAprobacion}%`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "18e4095c-4ecb-4332-b741-36e4c780e6c1",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "sendTo": "sfcerecerall@gmail.com",
+        "subject": "Resumen diario de devoluciones",
+        "message": "={{ $json.mensaje }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        0
+      ],
+      "id": "07b8e48d-ec86-4ace-9afb-ef47b26e3adb",
+      "name": "Send a message",
+      "webhookId": "f16fe4fa-4700-40f7-b86d-f3fe85a165b0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "z4foXdt3Iv3QG0Ns",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "eacd5f68-33b1-41d4-8885-6db3a2ad7b6d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9fe3167a9a37f1bd0255ed54dd5a5f4583b7370cac9db54126e868087ae577d3"
+  },
+  "nodeGroups": [],
+  "id": "LYNngpY4UYImmVcB",
+  "tags": []
+}
